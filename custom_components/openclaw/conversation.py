@@ -154,7 +154,7 @@ class OpenClawConversationAgent(conversation.AbstractConversationAgent):
             part for part in (exposed_context, extra_system_prompt) if part
         ) or None
 
-        _LOGGER.debug(
+        _LOGGER.info(
             "OpenClaw Assist routing: agent=%s session=%s",
             resolved_agent_id or "main",
             conversation_id,
@@ -239,6 +239,15 @@ class OpenClawConversationAgent(conversation.AbstractConversationAgent):
         )
         if configured_session_id:
             return configured_session_id
+
+        # Prefer HA-provided conversation id when available
+        if user_input.conversation_id:
+            # cache it per agent for sticky follow-ups
+            domain_store = self.hass.data.setdefault(DOMAIN, {})
+            session_cache = domain_store.setdefault("agent_sessions", {})
+            cache_key = agent_id or "main"
+            session_cache[cache_key] = user_input.conversation_id
+            return user_input.conversation_id
 
         # Reuse last session for this agent if available
         domain_store = self.hass.data.setdefault(DOMAIN, {})

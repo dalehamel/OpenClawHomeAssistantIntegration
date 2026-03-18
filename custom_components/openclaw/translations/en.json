@@ -53,6 +53,7 @@
           "voice_provider": "Voice input provider (browser or HA STT)",
           "browser_voice_language": "Browser voice language",
           "thinking_timeout": "Response timeout (seconds)",
+          "debug_logging": "Enable debug logging",
           "continue_conversation": "Continue conversation when assistant asks a question"
         }
       }

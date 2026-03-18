@@ -15,6 +15,7 @@ from homeassistant.components import conversation
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.helpers.storage import Store
 from homeassistant.helpers import intent
 
 from .api import OpenClawApiClient, OpenClawApiError
@@ -28,6 +29,7 @@ from .const import (
     CONF_CONTEXT_MAX_CHARS,
     CONF_CONTEXT_STRATEGY,
     CONF_CONTINUE_CONVERSATION,
+    CONF_DEBUG_LOGGING,
     CONF_INCLUDE_EXPOSED_CONTEXT,
     CONF_VOICE_AGENT_ID,
     DEFAULT_ASSIST_SESSION_ID,
@@ -35,10 +37,14 @@ from .const import (
     DEFAULT_CONTEXT_MAX_CHARS,
     DEFAULT_CONTEXT_STRATEGY,
     DEFAULT_CONTINUE_CONVERSATION,
+    DEFAULT_DEBUG_LOGGING,
     DEFAULT_INCLUDE_EXPOSED_CONTEXT,
     DATA_MODEL,
     DOMAIN,
     EVENT_MESSAGE_RECEIVED,
+    DATA_ASSIST_SESSIONS,
+    DATA_ASSIST_SESSION_STORE,
+    ASSIST_SESSION_STORE_KEY,
 )
 from .coordinator import OpenClawCoordinator
 from .exposure import apply_context_policy, build_exposed_entities_context
@@ -57,6 +63,13 @@ async def async_setup_entry(
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up the OpenClaw conversation agent."""
+    # Load persisted assist sessions
+    store = Store(hass, 1, ASSIST_SESSION_STORE_KEY)
+    stored = await store.async_load() or {}
+    hass.data.setdefault(DOMAIN, {})
+    hass.data[DOMAIN][DATA_ASSIST_SESSIONS] = stored
+    hass.data[DOMAIN][DATA_ASSIST_SESSION_STORE] = store
+
     agent = OpenClawConversationAgent(hass, entry)
     conversation.async_set_agent(hass, entry, agent)
 
@@ -154,11 +167,12 @@ class OpenClawConversationAgent(conversation.AbstractConversationAgent):
             part for part in (exposed_context, extra_system_prompt) if part
         ) or None
 
-        _LOGGER.info(
-            "OpenClaw Assist routing: agent=%s session=%s",
-            resolved_agent_id or "main",
-            conversation_id,
-        )
+        if options.get(CONF_DEBUG_LOGGING, DEFAULT_DEBUG_LOGGING):
+            _LOGGER.info(
+                "OpenClaw Assist routing: agent=%s session=%s",
+                resolved_agent_id or "main",
+                conversation_id,
+            )
 
         try:
             full_response = await self._get_response(
@@ -240,19 +254,20 @@ class OpenClawConversationAgent(conversation.AbstractConversationAgent):
         if configured_session_id:
             return configured_session_id
 
-
-        # Reuse last session for this agent if available
         domain_store = self.hass.data.setdefault(DOMAIN, {})
-        session_cache = domain_store.setdefault("agent_sessions", {})
+        session_cache = domain_store.setdefault(DATA_ASSIST_SESSIONS, {})
         cache_key = agent_id or "main"
         cached_session = session_cache.get(cache_key)
         if cached_session:
             return cached_session
 
-        # No cached session: create a new stable session id for this agent
-        # Use agent-prefixed session keys so routing is explicit in the gateway.
         new_session = f"agent:{cache_key}:assist_{uuid4().hex[:12]}"
         session_cache[cache_key] = new_session
+
+        store = domain_store.get(DATA_ASSIST_SESSION_STORE)
+        if store:
+            self.hass.async_create_task(store.async_save(session_cache))
+
         return new_session
 
     def _normalize_optional_text(self, value: Any) -> str | None:

@@ -52,6 +52,7 @@ class OpenClawApiClient:
         verify_ssl: bool = True,
         session: aiohttp.ClientSession | None = None,
         agent_id: str = "main",
+        debug_logging: bool = False,
     ) -> None:
         """Initialize the API client.
 
@@ -71,6 +72,7 @@ class OpenClawApiClient:
         self._verify_ssl = verify_ssl
         self._session = session
         self._agent_id = agent_id
+        self._debug_logging = debug_logging
         self._base_url = f"{'https' if use_ssl else 'http'}://{host}:{port}"
         # ssl=False disables cert verification for self-signed certs;
         # ssl=None uses default verification.

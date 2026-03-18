@@ -7,6 +7,7 @@ with Assist, Voice PE, and any HA voice satellite.
 from __future__ import annotations
 
 from datetime import datetime, timezone
+from uuid import uuid4
 import logging
 from typing import Any
 
@@ -23,12 +24,14 @@ from .const import (
     ATTR_SESSION_ID,
     ATTR_TIMESTAMP,
     CONF_ASSIST_SESSION_ID,
+    CONF_AGENT_ID,
     CONF_CONTEXT_MAX_CHARS,
     CONF_CONTEXT_STRATEGY,
     CONF_CONTINUE_CONVERSATION,
     CONF_INCLUDE_EXPOSED_CONTEXT,
     CONF_VOICE_AGENT_ID,
     DEFAULT_ASSIST_SESSION_ID,
+    DEFAULT_AGENT_ID,
     DEFAULT_CONTEXT_MAX_CHARS,
     DEFAULT_CONTEXT_STRATEGY,
     DEFAULT_CONTINUE_CONVERSATION,
@@ -117,12 +120,19 @@ class OpenClawConversationAgent(conversation.AbstractConversationAgent):
         coordinator: OpenClawCoordinator = entry_data["coordinator"]
 
         message = user_input.text
-        conversation_id = self._resolve_conversation_id(user_input)
         assistant_id = "conversation"
         options = self.entry.options
         voice_agent_id = self._normalize_optional_text(
             options.get(CONF_VOICE_AGENT_ID)
         )
+        configured_agent_id = self._normalize_optional_text(
+            options.get(
+                CONF_AGENT_ID,
+                self.entry.data.get(CONF_AGENT_ID, DEFAULT_AGENT_ID),
+            )
+        )
+        resolved_agent_id = voice_agent_id or configured_agent_id
+        conversation_id = self._resolve_conversation_id(user_input, resolved_agent_id)
         include_context = options.get(
             CONF_INCLUDE_EXPOSED_CONTEXT,
             DEFAULT_INCLUDE_EXPOSED_CONTEXT,
@@ -144,12 +154,18 @@ class OpenClawConversationAgent(conversation.AbstractConversationAgent):
             part for part in (exposed_context, extra_system_prompt) if part
         ) or None
 
+        _LOGGER.debug(
+            "OpenClaw Assist routing: agent=%s session=%s",
+            resolved_agent_id or "main",
+            conversation_id,
+        )
+
         try:
             full_response = await self._get_response(
                 client,
                 message,
                 conversation_id,
-                voice_agent_id,
+                resolved_agent_id,
                 system_prompt,
             )
         except OpenClawApiError as err:
@@ -213,7 +229,7 @@ class OpenClawConversationAgent(conversation.AbstractConversationAgent):
             conversation_id=conversation_id,
         )
 
-    def _resolve_conversation_id(self, user_input: conversation.ConversationInput) -> str:
+    def _resolve_conversation_id(self, user_input: conversation.ConversationInput, agent_id: str | None) -> str:
         """Return conversation id from HA or a stable Assist fallback session key."""
         configured_session_id = self._normalize_optional_text(
             self.entry.options.get(
@@ -224,19 +240,18 @@ class OpenClawConversationAgent(conversation.AbstractConversationAgent):
         if configured_session_id:
             return configured_session_id
 
-        if user_input.conversation_id:
-            return user_input.conversation_id
+        # Reuse last session for this agent if available
+        domain_store = self.hass.data.setdefault(DOMAIN, {})
+        session_cache = domain_store.setdefault("agent_sessions", {})
+        cache_key = agent_id or "main"
+        cached_session = session_cache.get(cache_key)
+        if cached_session:
+            return cached_session
 
-        context = getattr(user_input, "context", None)
-        user_id = getattr(context, "user_id", None)
-        if user_id:
-            return f"assist_user_{user_id}"
-
-        device_id = getattr(user_input, "device_id", None)
-        if device_id:
-            return f"assist_device_{device_id}"
-
-        return "assist_default"
+        # No cached session: create a new stable session id for this agent
+        new_session = f"assist_{cache_key}_{uuid4().hex[:12]}"
+        session_cache[cache_key] = new_session
+        return new_session
 
     def _normalize_optional_text(self, value: Any) -> str | None:
         """Return a stripped string or None for blank values."""

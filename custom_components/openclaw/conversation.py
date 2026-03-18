@@ -25,11 +25,13 @@ from .const import (
     CONF_ASSIST_SESSION_ID,
     CONF_CONTEXT_MAX_CHARS,
     CONF_CONTEXT_STRATEGY,
+    CONF_CONTINUE_CONVERSATION,
     CONF_INCLUDE_EXPOSED_CONTEXT,
     CONF_VOICE_AGENT_ID,
     DEFAULT_ASSIST_SESSION_ID,
     DEFAULT_CONTEXT_MAX_CHARS,
     DEFAULT_CONTEXT_STRATEGY,
+    DEFAULT_CONTINUE_CONVERSATION,
     DEFAULT_INCLUDE_EXPOSED_CONTEXT,
     DATA_MODEL,
     DOMAIN,
@@ -196,6 +198,15 @@ class OpenClawConversationAgent(conversation.AbstractConversationAgent):
 
         intent_response = intent.IntentResponse(language=user_input.language)
         intent_response.async_set_speech(full_response)
+
+        continue_conversation = options.get(
+            CONF_CONTINUE_CONVERSATION,
+            DEFAULT_CONTINUE_CONVERSATION,
+        )
+
+        # Heuristic: keep mic open when the assistant asks a question
+        if continue_conversation and "?" in full_response:
+            intent_response.continue_conversation = True
 
         return conversation.ConversationResult(
             response=intent_response,

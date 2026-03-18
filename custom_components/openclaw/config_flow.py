@@ -45,6 +45,7 @@ from .const import (
     CONF_VERIFY_SSL,
     CONF_CONTEXT_MAX_CHARS,
     CONF_CONTEXT_STRATEGY,
+    CONF_CONTINUE_CONVERSATION,
     CONF_ENABLE_TOOL_CALLS,
     CONF_INCLUDE_EXPOSED_CONTEXT,
     CONF_WAKE_WORD,
@@ -63,6 +64,7 @@ from .const import (
     DEFAULT_GATEWAY_PORT,
     DEFAULT_CONTEXT_MAX_CHARS,
     DEFAULT_CONTEXT_STRATEGY,
+    DEFAULT_CONTINUE_CONVERSATION,
     DEFAULT_ENABLE_TOOL_CALLS,
     DEFAULT_INCLUDE_EXPOSED_CONTEXT,
     DEFAULT_WAKE_WORD,
@@ -506,10 +508,24 @@ class OpenClawOptionsFlow(OptionsFlowWithReload):
                 ),
             ): vol.In([CONTEXT_STRATEGY_TRUNCATE, CONTEXT_STRATEGY_CLEAR]),
             vol.Optional(
+                CONF_CONTINUE_CONVERSATION,
+                default=options.get(
+                    CONF_CONTINUE_CONVERSATION,
+                    DEFAULT_CONTINUE_CONVERSATION,
+                ),
+            ): bool,
+            vol.Optional(
                 CONF_ENABLE_TOOL_CALLS,
                 default=options.get(
                     CONF_ENABLE_TOOL_CALLS,
                     DEFAULT_ENABLE_TOOL_CALLS,
+                ),
+            ): bool,
+            vol.Optional(
+                CONF_CONTINUE_CONVERSATION,
+                default=options.get(
+                    CONF_CONTINUE_CONVERSATION,
+                    DEFAULT_CONTINUE_CONVERSATION,
                 ),
             ): bool,
             vol.Optional(

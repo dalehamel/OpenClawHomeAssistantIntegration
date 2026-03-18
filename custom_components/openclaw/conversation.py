@@ -163,6 +163,24 @@ class OpenClawConversationAgent(conversation.AbstractConversationAgent):
             part for part in (exposed_context, extra_system_prompt) if part
         ) or None
 
+        if message.strip().split() and message.strip().split()[0].lower() == "/new":
+            new_session = self._create_new_session(resolved_agent_id)
+            intent_response = intent.IntentResponse(language=user_input.language)
+            intent_response.async_set_speech(
+                f"Started a new session: {new_session}"
+            )
+            return conversation.ConversationResult(
+                response=intent_response,
+                conversation_id=new_session,
+            )
+
+        if options.get(CONF_DEBUG_LOGGING, DEFAULT_DEBUG_LOGGING):
+            _LOGGER.info(
+                "OpenClaw Assist routing: agent=%s session=%s",
+                resolved_agent_id or "main",
+                conversation_id,
+            )
+
         try:
             full_response = await self._get_response(
                 client,
@@ -226,6 +244,16 @@ class OpenClawConversationAgent(conversation.AbstractConversationAgent):
 
     def _resolve_conversation_id(self, user_input: conversation.ConversationInput, agent_id: str | None) -> str:
         """Return conversation id from HA or a stable Assist fallback session key."""
+        domain_store = self.hass.data.setdefault(DOMAIN, {})
+        session_cache = domain_store.setdefault(DATA_ASSIST_SESSIONS, {})
+        cache_key = agent_id or "main"
+
+        # If a /new override exists, prefer it
+        if session_cache.get(f"{cache_key}__override"):
+            cached_session = session_cache.get(cache_key)
+            if cached_session:
+                return cached_session
+
         configured_session_id = self._normalize_optional_text(
             self.entry.options.get(
                 CONF_ASSIST_SESSION_ID,
@@ -235,9 +263,6 @@ class OpenClawConversationAgent(conversation.AbstractConversationAgent):
         if configured_session_id:
             return configured_session_id
 
-        domain_store = self.hass.data.setdefault(DOMAIN, {})
-        session_cache = domain_store.setdefault(DATA_ASSIST_SESSIONS, {})
-        cache_key = agent_id or "main"
         cached_session = session_cache.get(cache_key)
         if cached_session:
             return cached_session
@@ -249,6 +274,20 @@ class OpenClawConversationAgent(conversation.AbstractConversationAgent):
         if store:
             self.hass.async_create_task(store.async_save(session_cache))
 
+        return new_session
+
+
+    def _create_new_session(self, agent_id: str | None) -> str:
+        """Create and persist a new session id for the agent."""
+        domain_store = self.hass.data.setdefault(DOMAIN, {})
+        session_cache = domain_store.setdefault(DATA_ASSIST_SESSIONS, {})
+        cache_key = agent_id or "main"
+        new_session = f"agent:{cache_key}:assist_{uuid4().hex[:12]}"
+        session_cache[cache_key] = new_session
+        session_cache[f"{cache_key}__override"] = True
+        store = domain_store.get(DATA_ASSIST_SESSION_STORE)
+        if store:
+            self.hass.async_create_task(store.async_save(session_cache))
         return new_session
 
     def _normalize_optional_text(self, value: Any) -> str | None:

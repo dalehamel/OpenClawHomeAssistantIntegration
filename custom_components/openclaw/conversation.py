@@ -269,11 +269,14 @@ class OpenClawConversationAgent(conversation.AbstractConversationAgent):
         system_prompt: str | None = None,
     ) -> str:
         """Get a response from OpenClaw, trying streaming first."""
+        model_override = f"openclaw:{agent_id}" if agent_id else None
+
         # Try streaming (lower TTFB for voice pipeline)
         full_response = ""
         async for chunk in client.async_stream_message(
             message=message,
             session_id=conversation_id,
+            model=model_override,
             system_prompt=system_prompt,
             agent_id=agent_id,
             extra_headers=_VOICE_REQUEST_HEADERS,
@@ -287,6 +290,7 @@ class OpenClawConversationAgent(conversation.AbstractConversationAgent):
         response = await client.async_send_message(
             message=message,
             session_id=conversation_id,
+            model=model_override,
             system_prompt=system_prompt,
             agent_id=agent_id,
             extra_headers=_VOICE_REQUEST_HEADERS,

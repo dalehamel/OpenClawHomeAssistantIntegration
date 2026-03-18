@@ -250,7 +250,8 @@ class OpenClawConversationAgent(conversation.AbstractConversationAgent):
             return cached_session
 
         # No cached session: create a new stable session id for this agent
-        new_session = f"assist_{cache_key}_{uuid4().hex[:12]}"
+        # Use agent-prefixed session keys so routing is explicit in the gateway.
+        new_session = f"agent:{cache_key}:assist_{uuid4().hex[:12]}"
         session_cache[cache_key] = new_session
         return new_session
 

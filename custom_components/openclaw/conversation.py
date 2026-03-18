@@ -242,12 +242,13 @@ class OpenClawConversationAgent(conversation.AbstractConversationAgent):
 
         # Prefer HA-provided conversation id when available
         if user_input.conversation_id:
-            # cache it per agent for sticky follow-ups
+            # Namespace HA conversation id by agent to avoid cross-agent collisions
+            cache_key = agent_id or "main"
+            namespaced = f"assist_{cache_key}_{user_input.conversation_id}"
             domain_store = self.hass.data.setdefault(DOMAIN, {})
             session_cache = domain_store.setdefault("agent_sessions", {})
-            cache_key = agent_id or "main"
-            session_cache[cache_key] = user_input.conversation_id
-            return user_input.conversation_id
+            session_cache[cache_key] = namespaced
+            return namespaced
 
         # Reuse last session for this agent if available
         domain_store = self.hass.data.setdefault(DOMAIN, {})

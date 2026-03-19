@@ -45,6 +45,7 @@ from .const import (
     CONF_VERIFY_SSL,
     CONF_CONTEXT_MAX_CHARS,
     CONF_CONTEXT_STRATEGY,
+    CONF_CONTINUE_CONVERSATION,
     CONF_ENABLE_TOOL_CALLS,
     CONF_INCLUDE_EXPOSED_CONTEXT,
     CONF_WAKE_WORD,
@@ -54,6 +55,7 @@ from .const import (
     CONF_BROWSER_VOICE_LANGUAGE,
     CONF_VOICE_PROVIDER,
     CONF_THINKING_TIMEOUT,
+    CONF_DEBUG_LOGGING,
     BROWSER_VOICE_LANGUAGES,
     CONTEXT_STRATEGY_CLEAR,
     CONTEXT_STRATEGY_TRUNCATE,
@@ -63,6 +65,7 @@ from .const import (
     DEFAULT_GATEWAY_PORT,
     DEFAULT_CONTEXT_MAX_CHARS,
     DEFAULT_CONTEXT_STRATEGY,
+    DEFAULT_CONTINUE_CONVERSATION,
     DEFAULT_ENABLE_TOOL_CALLS,
     DEFAULT_INCLUDE_EXPOSED_CONTEXT,
     DEFAULT_WAKE_WORD,
@@ -71,6 +74,7 @@ from .const import (
     DEFAULT_BROWSER_VOICE_LANGUAGE,
     DEFAULT_VOICE_PROVIDER,
     DEFAULT_THINKING_TIMEOUT,
+    DEFAULT_DEBUG_LOGGING,
     DEFAULT_VOICE_AGENT_ID,
     DOMAIN,
     OPENCLAW_CONFIG_REL_PATH,
@@ -506,10 +510,24 @@ class OpenClawOptionsFlow(OptionsFlowWithReload):
                 ),
             ): vol.In([CONTEXT_STRATEGY_TRUNCATE, CONTEXT_STRATEGY_CLEAR]),
             vol.Optional(
+                CONF_CONTINUE_CONVERSATION,
+                default=options.get(
+                    CONF_CONTINUE_CONVERSATION,
+                    DEFAULT_CONTINUE_CONVERSATION,
+                ),
+            ): bool,
+            vol.Optional(
                 CONF_ENABLE_TOOL_CALLS,
                 default=options.get(
                     CONF_ENABLE_TOOL_CALLS,
                     DEFAULT_ENABLE_TOOL_CALLS,
+                ),
+            ): bool,
+            vol.Optional(
+                CONF_CONTINUE_CONVERSATION,
+                default=options.get(
+                    CONF_CONTINUE_CONVERSATION,
+                    DEFAULT_CONTINUE_CONVERSATION,
                 ),
             ): bool,
             vol.Optional(
@@ -537,6 +555,13 @@ class OpenClawOptionsFlow(OptionsFlowWithReload):
                 CONF_VOICE_PROVIDER,
                 default=selected_provider,
             ): vol.In(["browser", "assist_stt"]),
+            vol.Optional(
+                CONF_DEBUG_LOGGING,
+                default=options.get(
+                    CONF_DEBUG_LOGGING,
+                    DEFAULT_DEBUG_LOGGING,
+                ),
+            ): bool,
             vol.Optional(
                 CONF_THINKING_TIMEOUT,
                 default=options.get(

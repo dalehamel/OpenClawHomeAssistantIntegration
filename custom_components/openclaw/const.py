@@ -10,6 +10,7 @@ ADDON_SLUG = "openclaw_assistant_dev"
 ADDON_CONFIGS_ROOT = "/addon_configs"
 ADDON_SLUG_FRAGMENTS = ("openclaw_assistant", "openclaw")
 OPENCLAW_CONFIG_REL_PATH = ".openclaw/openclaw.json"
+ASSIST_SESSION_STORE_KEY = "openclaw_assist_sessions"
 
 # Defaults
 DEFAULT_GATEWAY_HOST = "127.0.0.1"
@@ -38,6 +39,8 @@ CONF_ALLOW_BRAVE_WEBSPEECH = "allow_brave_webspeech"
 CONF_VOICE_PROVIDER = "voice_provider"
 CONF_BROWSER_VOICE_LANGUAGE = "browser_voice_language"
 CONF_THINKING_TIMEOUT = "thinking_timeout"
+CONF_DEBUG_LOGGING = "debug_logging"
+CONF_CONTINUE_CONVERSATION = "continue_conversation"
 
 DEFAULT_AGENT_ID = "main"
 DEFAULT_VOICE_AGENT_ID = ""
@@ -52,6 +55,8 @@ DEFAULT_ALLOW_BRAVE_WEBSPEECH = False
 DEFAULT_VOICE_PROVIDER = "browser"
 DEFAULT_BROWSER_VOICE_LANGUAGE = "auto"
 DEFAULT_THINKING_TIMEOUT = 120
+DEFAULT_DEBUG_LOGGING = False
+DEFAULT_CONTINUE_CONVERSATION = False
 
 BROWSER_VOICE_LANGUAGES: tuple[str, ...] = (
 	"auto",
@@ -110,6 +115,8 @@ DATA_LAST_TOOL_DURATION_MS = "last_tool_duration_ms"
 DATA_LAST_TOOL_INVOKED_AT = "last_tool_invoked_at"
 DATA_LAST_TOOL_ERROR = "last_tool_error"
 DATA_LAST_TOOL_RESULT_PREVIEW = "last_tool_result_preview"
+DATA_ASSIST_SESSIONS = "assist_sessions"
+DATA_ASSIST_SESSION_STORE = "assist_session_store"
 
 # Platforms
 PLATFORMS = ["sensor", "binary_sensor", "conversation", "event", "button", "select"]
@@ -142,6 +149,8 @@ ATTR_OK = "ok"
 ATTR_RESULT = "result"
 ATTR_ERROR = "error"
 ATTR_DURATION_MS = "duration_ms"
+ATTR_DEVICE_ID = "device_id"
+ATTR_SATELLITE_ID = "satellite_id"
 
 # API endpoints
 # The OpenClaw gateway exposes only the OpenAI-compatible endpoints.

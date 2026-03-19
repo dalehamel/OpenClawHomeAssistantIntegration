@@ -52,6 +52,7 @@ class OpenClawApiClient:
         verify_ssl: bool = True,
         session: aiohttp.ClientSession | None = None,
         agent_id: str = "main",
+        debug_logging: bool = False,
     ) -> None:
         """Initialize the API client.
 
@@ -71,6 +72,7 @@ class OpenClawApiClient:
         self._verify_ssl = verify_ssl
         self._session = session
         self._agent_id = agent_id
+        self._debug_logging = debug_logging
         self._base_url = f"{'https' if use_ssl else 'http'}://{host}:{port}"
         # ssl=False disables cert verification for self-signed certs;
         # ssl=None uses default verification.
@@ -84,6 +86,18 @@ class OpenClawApiClient:
     def update_token(self, token: str) -> None:
         """Update the authentication token (e.g., after addon restart)."""
         self._token = token
+
+
+    def _log_request(self, label: str, agent_id: str | None, model: str | None, session_id: str | None, headers: dict[str, str]) -> None:
+        safe_headers = {k: ("<redacted>" if k.lower() == "authorization" else v) for k, v in headers.items()}
+        _LOGGER.warning(
+            "OpenClaw API %s: agent=%s model=%s session=%s headers=%s",
+            label,
+            agent_id or self._agent_id or "main",
+            model,
+            session_id,
+            safe_headers,
+        )
 
     def _headers(
         self,
@@ -227,6 +241,8 @@ class OpenClawApiClient:
             payload["user"] = session_id
         if model:
             payload["model"] = model
+        elif agent_id:
+            payload["model"] = f"openclaw:{agent_id}"
 
         # Pass session_id as a custom header or param if supported by gateway
         headers = self._headers(agent_id=agent_id, extra_headers=extra_headers)
@@ -236,6 +252,8 @@ class OpenClawApiClient:
 
         session = await self._get_session()
         url = f"{self._base_url}{API_CHAT_COMPLETIONS}"
+
+        self._log_request("chat", agent_id, payload.get("model"), session_id, headers)
 
         try:
             async with session.post(
@@ -294,6 +312,8 @@ class OpenClawApiClient:
             payload["user"] = session_id
         if model:
             payload["model"] = model
+        elif agent_id:
+            payload["model"] = f"openclaw:{agent_id}"
 
         headers = self._headers(agent_id=agent_id, extra_headers=extra_headers)
         if session_id:
@@ -302,6 +322,8 @@ class OpenClawApiClient:
 
         session = await self._get_session()
         url = f"{self._base_url}{API_CHAT_COMPLETIONS}"
+
+        self._log_request("chat", agent_id, payload.get("model"), session_id, headers)
 
         try:
             async with session.post(
@@ -367,6 +389,8 @@ class OpenClawApiClient:
         """
         session = await self._get_session()
         url = f"{self._base_url}{API_CHAT_COMPLETIONS}"
+
+        self._log_request("chat", agent_id, payload.get("model"), session_id, headers)
 
         try:
             async with session.post(

@@ -24,6 +24,8 @@ from .const import (
     ATTR_MODEL,
     ATTR_SESSION_ID,
     ATTR_TIMESTAMP,
+    ATTR_DEVICE_ID,
+    ATTR_SATELLITE_ID,
     CONF_ASSIST_SESSION_ID,
     CONF_AGENT_ID,
     CONF_CONTEXT_MAX_CHARS,
@@ -233,6 +235,8 @@ class OpenClawConversationAgent(conversation.AbstractConversationAgent):
                 ATTR_SESSION_ID: conversation_id,
                 ATTR_MODEL: coordinator.data.get(DATA_MODEL) if coordinator.data else None,
                 ATTR_TIMESTAMP: datetime.now(timezone.utc).isoformat(),
+                ATTR_DEVICE_ID: user_input.device_id,
+                ATTR_SATELLITE_ID: user_input.satellite_id,
             },
         )
         coordinator.update_last_activity()

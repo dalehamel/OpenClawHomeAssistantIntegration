@@ -149,6 +149,8 @@ ATTR_OK = "ok"
 ATTR_RESULT = "result"
 ATTR_ERROR = "error"
 ATTR_DURATION_MS = "duration_ms"
+ATTR_DEVICE_ID = "device_id"
+ATTR_SATELLITE_ID = "satellite_id"
 
 # API endpoints
 # The OpenClaw gateway exposes only the OpenAI-compatible endpoints.
